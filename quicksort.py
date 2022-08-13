@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-<<import>>
+import sys
+import timeit
+from typing import List
 
 # This function is same in both iterative and recursive
 def partition(arr,l,h):
@@ -63,5 +65,22 @@ def quickSortIterative(arr,l,h):
             stack[top] = p + 1
             top = top + 1
             stack[top] = h
+    return arr
 
-<<running_sort>>
+def sort_alg(arr):
+    return quickSortIterative(arr, 0, len(arr)-1)
+
+if __name__ == "__main__":
+    int_count = sys.argv[1]
+    with open(f"data/{int_count}ints.txt", "r") as data:
+        arr: List[int] = [int(line.strip()) for line in data.readlines()]
+        number:int = 2
+        def to_call():
+            return sort_alg(arr)
+        result = timeit.timeit(to_call, number=number)
+        print(
+            f"{number} вызовов для {int_count} данных: лучший результат равен {result:.02f}"
+        )
+        result = sort_alg(arr)
+        for i in range(len(result)-1):
+            assert result[i] < result[i+1]
