@@ -1,0 +1,333 @@
+#+TITLE: Рекурсия. Алгоритмы сортировки
+#+EMAIL: @pvavilin
+#+AUTHOR: @pvavilin
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:https://orgmode.org/org-info.js
+#+startup: beamer
+#+LaTeX_CLASS: beamer
+#+LaTeX_CLASS_OPTIONS: [smallest]
+#+LATEX_HEADER: \usetheme{default}
+#+LATEX_HEADER: \usecolortheme{crane}
+#+LATEX_HEADER: \usepackage{tikzsymbols}
+#+LATEX_HEADER: \RequirePackage{fancyvrb}
+#+LATEX_HEADER: \DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\scriptsize}
+#+LaTeX_HEADER: \lstset{basicstyle=\scriptsize\ttfamily}
+#+LATEX_HEADER: \usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{bg.jpeg}}
+#+OPTIONS: \n:t ^:nil
+
+#+NAME: import
+#+BEGIN_SRC python :exports none
+  import sys
+  import timeit
+  from typing import List
+#+END_SRC
+#+NAME: running_sort
+#+BEGIN_SRC python :exports none
+  if __name__ == "__main__":
+      int_count = sys.argv[1]
+      with open(f"data/{int_count}ints.txt", "r") as data:
+          arr: List[int] = [int(line.strip()) for line in data.readlines()]
+          number:int = 2
+          def to_call():
+              return sort_alg(arr)
+          result = timeit.timeit(to_call, number=number)
+          print(
+              f"{number} вызовов для {int_count} данных: лучший результат равен {result:.02f}"
+          )
+#+END_SRC
+
+* Что такое рекурсия?
+  Приём в программировании, когда задача может быть разделена на несколько таких же, но проще, задач.
+  #+BEGIN_SRC python :exports code
+    def pow(x, n):
+        # возведение числа в степень это
+        # умножение числа на число
+        # в степени n-1
+        if n == 0:
+            return 1
+        return x * pow(x, n-1)
+  #+END_SRC
+* Правильная рекурсия
+  #+BEGIN_SRC python :exports code
+    def pow(x, n):
+        # хорошо бы проверить,
+        # что база достижима
+        assert n >= 0
+        # base case / база рекурсии
+        if n == 0:
+            return 1
+        # recursive case / шаг рекурсии
+        return x * pow(x, n-1)
+  #+END_SRC
+* Что такое стек вызовов?
+  #+BEGIN_SRC python :exports code
+    def foo(msg):
+        print '{} foo'.format(msg)
+
+    def main():
+        msg = 'hello'
+        foo(msg)
+
+    if __name__ == '__main__':
+        main()
+  #+END_SRC
+* Что такое стек вызовов?
+  [[file:callstack.png]]
+* Почему рекурсия это плохо
+  - стек вызовов растёт вместе с ростом глубины рекурсии
+  - можно попасть в бесконечную рекурсию и истратить всю память на стек вызовов
+
+* Recursion depth
+  #+BEGIN_SRC python :exports code
+    def inf_counter(x):
+        print(x)
+        return inf_counter(x+1)
+    f(0)
+  #+END_SRC
+
+* Глубина рекурсии
+  #+BEGIN_SRC python :exports both :results output
+    import sys
+
+    print(sys.getrecursionlimit())
+    sys.setrecursionlimit(
+        sys.getrecursionlimit() + 234
+    )
+    print(sys.getrecursionlimit())
+  #+END_SRC
+
+  #+RESULTS:
+  : 1000
+  : 1234
+
+* Почему рекурсия это хорошо
+  Помогает описать решение задачи понятным языком
+  #+BEGIN_SRC python :exports both :results output
+    # n! = n * (n-1)
+    def factorial(n):
+        if n == 0:
+            return 1
+        return n * factorial(n-1)
+
+    print(factorial(5))
+  #+END_SRC
+
+  #+RESULTS:
+  : 120
+
+* Вариант задачи для рекурсии
+  Попробуйте реализовать решение __[[https://gist.github.com/pimiento/201225ad1a70432060531676dd3e6239][этой задачи]]__ без использования рекурсии \Winkey[][green!60!white]
+* Хвостовая рекурсия
+  Рекурсия, не требующая действий с возвращённым результатом из шага рекурсии.
+  #+BEGIN_SRC python :exports both :results output
+    def factorial(n, collected=1):
+        if n == 0:
+            return collected
+        return factorial(n-1, collected*n)
+
+    print(factorial(5))
+  #+END_SRC
+
+  #+RESULTS:
+  : 120
+
+* Оптимизация хвостовой рекурсии и почему её нет в Python
+  - Интерпретаторы/компиляторы могут оптимизировать хвостовую рекурсию (Tail Call Optimization) и не делать записей в стек вызовов, а подменять переменные в стеке вызовов, таким образом код получится равнозначным обычному циклу
+  - __[[https://neopythonic.blogspot.com/2009/04/final-words-on-tail-calls.html][Почему TCO нет и не будет в Python]]__
+* Пример когда рекурсия помогает
+  - Задача :: У вас есть вложенная структура данных и вы хотите просуммировать значения поля X во всех объектах этой структуры.
+  - Решение задачи :: https://gist.github.com/pimiento/bc4d5800f66541cb59ea388c1c3c263c
+* Дополнительная литература
+  - [[https://mitpress.mit.edu/sites/default/files/sicp/full-text/book/book.html][SICP]]
+* Зачем нужна сортировка данных
+  - Можем получить медианное значение
+    #+ATTR_LATEX: :width .3\textwidth
+    [[file:median.jpeg]]
+  - Можем использовать бинарный поиск
+  - Проще найти минимум/максимум
+  - Множество других применений
+* Глупая сортировка / сортировка дурака
+  #+BEGIN_SRC python :exports both :results output
+    def sort_alg(l):
+      while True:
+        c = 0
+        for i in range(len(l)-1):
+          if l[i] > l[i+1]:
+            l[i+1],l[i] = l[i],l[i+1]
+          else:
+            c += 1
+        if c == (len(l) - 1): return l
+
+    print(sort_alg([1, 3, 2, 0]))
+  #+END_SRC
+
+  #+RESULTS:
+  : [0, 1, 2, 3]
+
+  - Эффективность *глупой сортировки*: $\mathcal{O}(n^{3})$
+
+* Пузырьковая сортировка
+  #+BEGIN_SRC python :exports both :results output
+    def sort_alg(l):
+        for i in range(len(l)):
+            for j in range(len(l[i+1:])):
+                if l[j] > l[j+1]:
+                    l[j], l[j+1] = (
+                        l[j+1], l[j]
+                    )
+        return l
+
+
+    print(sort_alg([1, 3, 2, 0]))
+  #+END_SRC
+
+  #+RESULTS:
+  : [0, 1, 2, 3]
+
+  - Эффективность *пузырьковой сортировки*: $\mathcal{O}(n^{2})$
+* Сортировка вставками
+  #+BEGIN_SRC python :exports code
+    def sort_alg(l):
+        for i in range(1, len(l)):
+            k = l[i]
+            j = i-1
+            print(f"i: {i}; k: {k}")
+            while j >= 0 and k < l[j]:
+                l[j+1] = l[j]
+                print(f"l: {l}")
+                j -= 1
+            l[j+1] = k
+            print(f"j: {j}; l: {l}")
+
+    d = [12, 11, 13, 5, 6]
+  #+END_SRC
+* Сортировка вставками
+  - Эффективность *сортировки вставками*: $\mathcal{O}(n^{2})$
+  *Но!* Эта сортировка эффективна если у вас уже частично отсортированные данные, так как пропускается этап перестановки данных.
+  - __[[https://habr.com/ru/post/415935/][Дополнительно почитать]]__
+* Сортировка Шелла
+  - __[[https://ru.wikibooks.org/wiki/%25D0%259F%25D1%2580%25D0%25B8%25D0%25BC%25D0%25B5%25D1%2580%25D1%258B_%25D1%2580%25D0%25B5%25D0%25B0%25D0%25BB%25D0%25B8%25D0%25B7%25D0%25B0%25D1%2586%25D0%25B8%25D0%25B8_%25D1%2581%25D0%25BE%25D1%2580%25D1%2582%25D0%25B8%25D1%2580%25D0%25BE%25D0%25B2%25D0%25BA%25D0%25B8_%25D0%25A8%25D0%25B5%25D0%25BB%25D0%25BB%25D0%25B0#Python][Код]]__
+  - на практике получается скорость работы быстрее $\mathcal{O}(n^{2})$ но нет математических описаний как выбор последовательности дистанций влияет на алгоритмическую сложность.
+* Быстрая сортировка
+  #+BEGIN_SRC python :exports both :results output
+    def qsort(L):
+        if L:
+            return (
+                qsort(
+            [e for e in L[1:] if e < L[0]]
+                ) +
+                L[0:1] +
+                qsort(
+            [e for e in L[1:] if e >= L[0]]
+                )
+            )
+        return []
+
+    print(qsort([1, 3, 2, 0]))
+  #+END_SRC
+
+  #+RESULTS:
+  : [0, 1, 2, 3]
+* Быстрая сортировка без рекурсии
+  #+BEGIN_SRC python :exports none :tangle quicksort.py :shebang "#!/usr/bin/env python3"
+    <<import>>
+
+    # This function is same in both iterative and recursive
+    def partition(arr,l,h):
+        i = ( l - 1 )
+        x = arr[h]
+
+        for j in range(l , h):
+            if   arr[j] <= x:
+
+                # increment index of smaller element
+                i = i+1
+                arr[i],arr[j] = arr[j],arr[i]
+
+        arr[i+1],arr[h] = arr[h],arr[i+1]
+        return (i+1)
+
+    # Function to do Quick sort
+    # arr[] --> Array to be sorted,
+    # l  --> Starting index,
+    # h  --> Ending index
+    def quickSortIterative(arr,l,h):
+
+        # Create an auxiliary stack
+        size = h - l + 1
+        stack = [0] * (size)
+
+        # initialize top of stack
+        top = -1
+
+        # push initial values of l and h to stack
+        top = top + 1
+        stack[top] = l
+        top = top + 1
+        stack[top] = h
+
+        # Keep popping from stack while is not empty
+        while top >= 0:
+
+            # Pop h and l
+            h = stack[top]
+            top = top - 1
+            l = stack[top]
+            top = top - 1
+
+            # Set pivot element at its correct position in
+            # sorted array
+            p = partition( arr, l, h )
+
+            # If there are elements on left side of pivot,
+            # then push left side to stack
+            if p-1 > l:
+                top = top + 1
+                stack[top] = l
+                top = top + 1
+                stack[top] = p - 1
+
+            # If there are elements on right side of pivot,
+            # then push right side to stack
+            if p+1 < h:
+                top = top + 1
+                stack[top] = p + 1
+                top = top + 1
+                stack[top] = h
+
+    <<running_sort>>
+  #+END_SRC
+* Сортировка слиянием (Merge Sort)
+  - __[[https://gist.github.com/pimiento/72ea7cc917e1e732f834e307f6998d89][Код]]__
+  - __[[https://www.youtube.com/watch?v=JSceec-wEyw][мультик]]__
+  Сортировка слиянием позволяет нам распараллелить процесс сортировки. Это очень эффективно на больших данных и широко используется в алгоритмах map/reduce.
+* Сравнение алгоритмов сортировки
+  #+ATTR_LATEX: :width 1.1\textwidth
+  [[file:sorting_algorithms.png]]
+
+* Устойчивость сортировки
+  #+BEGIN_SRC python :exports both :results output
+    records = [
+       (("A", "X"), ("B", 1)),
+       (("A", "Y"), ("B", 1)),
+       (("A", "X"), ("B", 2)),
+    ]
+    records.sort(key=lambda x: x[0][1])
+    for r in records:
+        print(f"{r[0][1]}, {r[1][1]}")
+  #+END_SRC
+
+  #+RESULTS:
+  : X, 1
+  : X, 2
+  : Y, 1
+
+* Экзотические сортировки
+  - __[[https://habr.com/ru/post/161835/][Тыц]]__
+  - __[[http://algolab.valemak.com/schrodinger][Тыц]]__
+* Дополнительная литература
+  - [[https://habr.com/ru/post/204600/][Пузырьковая сортировка и её улучшения]]
+  - [[https://habr.com/ru/post/133996/][Сравнение алгоритмов]]
+  - Т.Кормен, Ч.Лейзерсон, Р.Ривест, К.Штайн «Алгоритмы. Построение и анализ.»
+* Вопросы-ответы
+  #+ATTR_LATEX: :width .6\textwidth
+  [[file:questions.jpg]]
